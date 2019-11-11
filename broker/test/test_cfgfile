@@ -1,0 +1,6 @@
+# Default rib configuration
+# Connection to rib.control on same machine over loopback
+
+[Rib]
+control=ipc:///tmp/broker_test_ctrl
+data=ipc://*

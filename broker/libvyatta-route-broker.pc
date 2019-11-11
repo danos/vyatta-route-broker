@@ -1,0 +1,20 @@
+# Copyright (c) 2018, AT&T Intellectual Property. All rights reserved.
+#
+# SPDX-License-Identifier: MPL-2.0
+#
+# pkg-config file for libvyatta-route-broker
+
+prefix=/usr
+exec_prefix=${prefix}
+libdir=${exec_prefix}/lib
+includedir=${prefix}/include
+
+Name: libvyatta-route-broker
+Description: Vyatta route broker C library
+Version: 0.1.0
+
+Requires:
+
+Libs: -L${libdir} -lvyatta-route-broker
+Cflags: -I${includedir}
+Libs.private: -lczmq -lzmq

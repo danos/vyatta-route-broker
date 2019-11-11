@@ -1,0 +1,56 @@
+# Debian rules
+build-stamp
+debian/tmp
+debian/files
+debian/libvyatta-route-broker-dev/
+debian/vyatta-route-broker-frr/
+debian/*.log
+debian/*.substvars
+debian/*.debhelper
+debian/debhelper-build-stamp
+# executable
+daemon/brokerd
+# Test
+broker/test/broker_client_test
+broker/test/broker_dp_test
+broker/test/broker_test
+# Normal rules
+.*
+*.o
+*.o.*
+*.a
+*.s
+*.ko
+*.so
+*.so.dbg
+*.mod.c
+*.i
+*.lst
+*.symtypes
+*.order
+modules.builtin
+*.elf
+*.bin
+*.gz
+*.bz2
+*.lzma
+*.xz
+*.lzo
+*.patch
+*.gcno
+#
+# Top-level generic files
+#
+/tags
+/TAGS
+
+# git files that we don't want to ignore even it they are dot-files
+!.gitignore
+
+# cscope files
+cscope.*
+
+*.orig
+*.rej
+*~
+\#*#

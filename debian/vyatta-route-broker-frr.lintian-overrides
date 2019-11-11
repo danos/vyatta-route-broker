@@ -1,0 +1,2 @@
+# Skip stuff that Vyatta doesn't ship
+binary-without-manpage

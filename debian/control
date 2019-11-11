@@ -1,0 +1,28 @@
+Source: vyatta-route-broker
+Section: contrib/net
+Priority: optional
+Maintainer: Vyatta Package Maintainers <DL-vyatta-help@att.com>
+Build-Depends:
+ bvnos-linux-libc-dev,
+ debhelper (>= 10),
+ debhelper (>= 9.20160709) | dh-systemd,
+ libczmq-dev,
+ libinih-dev,
+ libmnl-dev,
+ libzmq3-dev,
+ pkg-config
+Standards-Version: 4.1.2
+
+Package: libvyatta-route-broker-dev
+Architecture: any
+Priority: optional
+Section: contrib/libdevel
+Depends: ${misc:Depends}
+Description: Vyatta route broker C development library and header file
+ C Development header and library files for vyatta route broker
+
+Package: vyatta-route-broker-frr
+Architecture: any
+Depends: frr, ${misc:Depends}, ${shlibs:Depends}
+Description: Vyatta route broker daemon for FRR
+ Daemon which listens to FRR FPM API to program Vyatta dataplane

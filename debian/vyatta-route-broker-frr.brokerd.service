@@ -1,0 +1,12 @@
+[Unit]
+Description=Vyatta Route Broker
+After=vyatta-routing-frr-early.target
+
+[Service]
+Type=simple
+TimeoutStopSec=10
+Environment="TMPDIR=/var/run/routing"
+ExecStart=/usr/sbin/brokerd -u routing -g adm
+
+[Install]
+WantedBy=vyatta-routing-frr.target
