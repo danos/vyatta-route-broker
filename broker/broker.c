@@ -246,8 +246,11 @@ void *broker_client_get_data(struct broker_client *client)
 
 	broker_obj =
 	    broker_get_next_data_obj(client->broker, &client->broker_obj);
-	if (!broker_obj)
+	if (!broker_obj) {
+		/* No more data. Ensure id up to date so don't keep asking */
+		client->broker_obj.id = client->broker->id;
 		return NULL;
+	}
 
 	if (broker_obj->flags & BROKER_FLAGS_DELETE)
 		data = client->client_ops.del_obj(broker_obj);

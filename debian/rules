@@ -7,3 +7,6 @@ export DEB_BUILD_MAINT_OPTIONS = hardening=+all
 
 override_dh_systemd_enable:
 	dh_systemd_enable -p vyatta-route-broker-frr --name=brokerd brokerd.service
+
+override_dh_strip:
+	dh_strip -Xlibvyatta-route-broker.a
