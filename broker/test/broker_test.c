@@ -464,7 +464,7 @@ static void *test_consumer(void *arg)
 
 			consumed_count++;
 			available--;
-			free(nl);
+			route_broker_client_free_data(client, nl);
 		}
 		if (finished)
 			break;
@@ -517,6 +517,8 @@ int main(int argc, char **argv)
 
 	rc = route_broker_init();
 	assert(rc == 0);
+	route_broker_copy_obj = rib_nl_copy;
+	route_broker_free_obj = rib_nl_free;
 
 	build_route_buffers();
 

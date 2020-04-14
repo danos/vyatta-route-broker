@@ -127,14 +127,15 @@ void broker_dp_data_client(zsock_t *pipe, void *arg)
  try_sending:
 			if (rib_dp_publish_route(nl, dp_data_sock)) {
 				if (client_needs_restart(pipe)) {
-					free(nl);
+					route_broker_client_free_data(
+						client, nl);
 					goto stop_client;
 				}
 
 				usleep(10000);
 				goto try_sending;
 			}
-			free(nl);
+			route_broker_client_free_data(client, nl);
 
 			if (client_needs_restart(pipe))
 				goto stop_client;

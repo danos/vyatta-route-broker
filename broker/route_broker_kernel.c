@@ -31,7 +31,7 @@ static void *broker_consumer(void *arg)
 		while ((nl = route_broker_client_get_data(client))) {
 			if (rib_kernel_publish_route(nl))
 				client->errors++;
-			free(nl);
+			route_broker_client_free_data(client, nl);
 		}
 	}
 

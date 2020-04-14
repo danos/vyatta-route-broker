@@ -42,6 +42,10 @@ struct route_broker_init {
 	void *log_arg;
 };
 
+typedef void *(*object_broker_copy_obj_cb) (const void *obj);
+
+typedef void (*object_broker_free_obj_cb) (void *obj);
+
 /*
  * Take a netlink route message. Parse it to check it is a route, and if it
  * is then update the broker with it. This can be either an add, modify

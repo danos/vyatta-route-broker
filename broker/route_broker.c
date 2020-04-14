@@ -24,6 +24,8 @@
 void *route_broker_log_arg;
 route_broker_fmt_cb route_broker_log_debug;
 route_broker_fmt_cb route_broker_log_error;
+object_broker_copy_obj_cb route_broker_copy_obj;
+object_broker_free_obj_cb route_broker_free_obj;
 
 static uint64_t processed_msg;
 static uint64_t ignored_msg;
@@ -59,7 +61,7 @@ static void rib_route_delete(struct rib_route *obj)
 	assert(obj);
 	if (--obj->refcount == 0) {
 		zhash_delete(route_hashtbl, obj->topic);
-		free(obj->data);
+		route_broker_free_obj(obj->data);
 		free(obj);
 	}
 }
@@ -245,19 +247,11 @@ int route_broker_destroy(void)
 static void *route_broker_client_get(struct broker_obj *b_obj)
 {
 	struct rib_route *obj;
-	struct nlmsghdr *nl;
-	struct nlmsghdr *nl_copy;
 
 	obj = broker_obj_to_rib_route(b_obj);
 
-	nl = obj->data;
-	assert(nl);
-	nl_copy = malloc(nl->nlmsg_len);
-	assert(nl_copy);
-
-	memcpy(nl_copy, nl, nl->nlmsg_len);
-
-	return nl_copy;
+	assert(obj->data);
+	return route_broker_copy_obj(obj->data);
 }
 
 static struct broker_client_ops route_broker_client_ops = {
@@ -312,6 +306,12 @@ void *route_broker_client_get_data(struct route_broker_client *rclient)
 	route_broker_unlock();
 
 	return nl;
+}
+
+void route_broker_client_free_data(struct route_broker_client *rclient,
+				   void *obj)
+{
+	route_broker_free_obj(obj);
 }
 
 struct route_broker_client *route_broker_client_create(const char *name)
@@ -407,21 +407,20 @@ void route_broker_publish(const struct nlmsghdr *nlmsg, enum route_priority pri)
 		return;
 	}
 
-	data_copy = malloc(nlmsg->nlmsg_len);
+	data_copy = route_broker_copy_obj(nlmsg);
 	if (!data_copy) {
 		dropped_msg++;
 		free(route);
 		return;
 	}
 
-	memcpy(data_copy, nlmsg, nlmsg->nlmsg_len);
 	route->data = data_copy;
 	route->pri = pri;
-	rc = route_topic(nlmsg, route->topic, ROUTE_TOPIC_LEN);
+	rc = route_topic(route->data, route->topic, ROUTE_TOPIC_LEN);
 	if (rc <= 0) {
 		/* Some routes such as local broadcast are ignored */
 		ignored_msg++;
-		free(route->data);
+		route_broker_free_obj(route->data);
 		free(route);
 		return;
 	}
@@ -453,7 +452,7 @@ void route_broker_publish(const struct nlmsghdr *nlmsg, enum route_priority pri)
 				 * lower priority.
 				 * Swap the data to most recent version.
 				 */
-				free(hashed_route->data);
+				route_broker_free_obj(hashed_route->data);
 				hashed_route->data = route->data;
 
 				broker_del_obj(route_broker[hashed_route->pri],
@@ -462,7 +461,7 @@ void route_broker_publish(const struct nlmsghdr *nlmsg, enum route_priority pri)
 				free(route);
 			}
 		} else {
-			free(route->data);
+			route_broker_free_obj(route->data);
 			free(route);
 		}
 	} else {
@@ -503,7 +502,7 @@ void route_broker_publish(const struct nlmsghdr *nlmsg, enum route_priority pri)
 				 * Updating, so swap data to most recent
 				 * version.
 				 */
-				free(hashed_route->data);
+				route_broker_free_obj(hashed_route->data);
 				hashed_route->data = route->data;
 				free(route);
 				broker_upd_obj(route_broker[hashed_route->pri],
@@ -521,6 +520,24 @@ void route_broker_publish(const struct nlmsghdr *nlmsg, enum route_priority pri)
 	route_broker_unlock();
 }
 
+void *rib_nl_copy(const void *obj)
+{
+	const struct nlmsghdr *nl = obj;
+	struct nlmsghdr *nl_copy;
+
+	nl_copy = malloc(nl->nlmsg_len);
+	if (!nl_copy)
+		return NULL;
+
+	memcpy(nl_copy, nl, nl->nlmsg_len);
+	return nl_copy;
+}
+
+void rib_nl_free(void *obj)
+{
+	free(obj);
+}
+
 int route_broker_init_all(const struct route_broker_init *init)
 {
 	int rc;
@@ -534,6 +551,8 @@ int route_broker_init_all(const struct route_broker_init *init)
 		route_broker_log_error = init->log_error;
 		route_broker_log_arg = init->log_arg;
 	}
+	route_broker_copy_obj = rib_nl_copy;
+	route_broker_free_obj = rib_nl_free;
 
 	rc = route_broker_init();
 	assert(rc == 0);
