@@ -42,7 +42,7 @@ struct rib_route {
 	uint32_t refcount;
 	enum route_priority pri;
 	char topic[ROUTE_TOPIC_LEN];
-	struct nlmsghdr *data;
+	void *data;
 };
 
 enum route_broker_types {

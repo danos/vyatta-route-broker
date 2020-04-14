@@ -281,7 +281,7 @@ static int data_available_for_client(struct route_broker_client *rclient)
  */
 void *route_broker_client_get_data(struct route_broker_client *rclient)
 {
-	struct nlmsghdr *nl;
+	void *data;
 	int level;
 	int rc;
 	struct timespec wake_at;
@@ -303,10 +303,10 @@ void *route_broker_client_get_data(struct route_broker_client *rclient)
 		}
 	}
 
-	nl = broker_client_get_data(rclient->client[level]);
+	data = broker_client_get_data(rclient->client[level]);
 	route_broker_unlock();
 
-	return nl;
+	return data;
 }
 
 void route_broker_client_free_data(struct route_broker_client *rclient,
@@ -382,12 +382,12 @@ static void route_broker_wake_clients(void)
 	}
 }
 
-void route_broker_publish(const struct nlmsghdr *nlmsg, enum route_priority pri)
+void object_broker_publish(void *obj, int pri)
 {
 	struct rib_route *route = NULL;
 	struct rib_route *hashed_route = NULL;
 	int rc;
-	struct nlmsghdr *data_copy;
+	void *data_copy;
 	bool del = false;
 
 	processed_msg++;
@@ -397,7 +397,7 @@ void route_broker_publish(const struct nlmsghdr *nlmsg, enum route_priority pri)
 		return;
 	}
 
-	data_copy = route_broker_copy_obj(nlmsg);
+	data_copy = route_broker_copy_obj(obj);
 	if (!data_copy) {
 		dropped_msg++;
 		free(route);
@@ -511,6 +511,55 @@ void route_broker_publish(const struct nlmsghdr *nlmsg, enum route_priority pri)
 	route_broker_unlock();
 }
 
+int object_broker_init_all(const struct object_broker_init *init,
+			   unsigned int num_clients,
+			   const struct object_broker_client_init *client)
+{
+	int rc;
+
+	if (!init || !init->topic_gen || !init->copy_obj || !init->free_obj)
+		return -EINVAL;
+
+	/* Client support currently hardcoded */
+	if (num_clients != 1 && num_clients != 2)
+		return -EINVAL;
+
+	/* First client must be DP_ZSOCK */
+	if (client[0].type != OB_CLIENT_DP_ZSOCK || !client[0].cfg_file ||
+	    !client[0].client_publish)
+		return -EINVAL;
+
+	/* Second client, if present, must be callback type */
+	if (num_clients == 2 && (client[1].type != OB_CLIENT_CB ||
+				 !client[1].client_publish))
+		return -EINVAL;
+
+	route_broker_log_debug = init->log_debug;
+	route_broker_log_error = init->log_error;
+	route_broker_log_arg = init->log_arg;
+	route_broker_topic_gen = init->topic_gen;
+	route_broker_copy_obj = init->copy_obj;
+	route_broker_free_obj = init->free_obj;
+
+	rc = route_broker_init();
+	assert(rc == 0);
+
+	rc = route_broker_dataplane_ctrl_init(client[0].cfg_file,
+					      client[0].client_publish);
+	if (num_clients == 2)
+		rc |= route_broker_kernel_init(client[1].client_publish);
+	return rc;
+}
+
+void object_broker_shutdown_all(void)
+{
+	route_broker_dataplane_ctrl_shutdown();
+	route_broker_kernel_shutdown();
+	route_broker_destroy();
+}
+
+/* Legacy netlink implementation */
+
 static route_broker_kernel_publish_cb rib_nl_kernel_publish;
 
 static int rib_nl_kernel_publish_wrapper(void *obj, void *client_ctx)
@@ -557,36 +606,39 @@ void rib_nl_free(void *obj)
 
 int route_broker_init_all(const struct route_broker_init *init)
 {
-	int rc;
+	struct object_broker_init obj_init = { 0 };
+	struct object_broker_client_init client[2] = { 0 };
+	unsigned int num_clients = 1;
 	const char *cfgfile = "/etc/vyatta-routing/rib.conf";
 
-	route_broker_log_arg = NULL;
-	route_broker_log_debug = NULL;
-	route_broker_log_error = NULL;
 	if (init) {
-		route_broker_log_debug = init->log_debug;
-		route_broker_log_error = init->log_error;
-		route_broker_log_arg = init->log_arg;
+		obj_init.log_debug = init->log_debug;
+		obj_init.log_error = init->log_error;
+		obj_init.log_arg = init->log_arg;
 	}
-	route_broker_topic_gen = route_topic;
-	route_broker_copy_obj = rib_nl_copy;
-	route_broker_free_obj = rib_nl_free;
+	obj_init.topic_gen = route_topic;
+	obj_init.copy_obj = rib_nl_copy;
+	obj_init.free_obj = rib_nl_free;
 
-	rc = route_broker_init();
-	assert(rc == 0);
+	client[0].cfg_file = cfgfile;
+	client[0].type = OB_CLIENT_DP_ZSOCK;
+	client[0].client_publish = rib_nl_dp_publish_route;
 
-	rc = route_broker_dataplane_ctrl_init(cfgfile,
-					      rib_nl_dp_publish_route);
 	if (init && init->kernel_publish) {
 		rib_nl_kernel_publish = init->kernel_publish;
-		rc |= route_broker_kernel_init(rib_nl_kernel_publish_wrapper);
+		client[1].type = OB_CLIENT_CB;
+		client[1].client_publish = rib_nl_kernel_publish_wrapper;
+		num_clients = 2;
 	}
-	return rc;
+	return object_broker_init_all(&obj_init, num_clients, client);
+}
+
+void route_broker_publish(const struct nlmsghdr *nlmsg, enum route_priority pri)
+{
+	object_broker_publish((void *)nlmsg, pri);
 }
 
 void route_broker_shutdown_all(void)
 {
-	route_broker_dataplane_ctrl_shutdown();
-	route_broker_kernel_shutdown();
-	route_broker_destroy();
+	object_broker_shutdown_all();
 }

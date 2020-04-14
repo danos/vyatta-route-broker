@@ -57,6 +57,42 @@ typedef void (*object_broker_free_obj_cb) (void *obj);
 
 typedef int (*object_broker_client_publish_cb) (void *obj, void *client_ctx);
 
+struct object_broker_init {
+	/* Topic generation */
+	object_broker_topic_gen_cb topic_gen;
+
+	/* Make a copy of the object */
+	object_broker_copy_obj_cb copy_obj;
+
+	/* Free the object */
+	object_broker_free_obj_cb free_obj;
+
+	/* Debug logging */
+	route_broker_fmt_cb log_debug;
+
+	/* Error logging */
+	route_broker_fmt_cb log_error;
+
+	/* Argument to provide with log callbacks */
+	void *log_arg;
+};
+
+enum object_broker_client_type {
+	/* Just call back the client upon publish */
+	OB_CLIENT_CB,
+	/* Connect to dataplane, provide a zsock upon publish */
+	OB_CLIENT_DP_ZSOCK,
+};
+
+struct object_broker_client_init {
+	enum object_broker_client_type type;
+
+	object_broker_client_publish_cb client_publish;
+
+	/* path to config file - required for OB_CLIENT_ZSOCK */
+	const char *cfg_file;
+};
+
 /*
  * Take a netlink route message. Parse it to check it is a route, and if it
  * is then update the broker with it. This can be either an add, modify
@@ -70,5 +106,14 @@ void route_broker_show_summary(route_broker_fmt_cb cli_out, void *cli);
 /* Init broker and vplaned broker client */
 int route_broker_init_all(const struct route_broker_init *init);
 void route_broker_shutdown_all(void);
+
+/* Object broker APIs */
+
+int object_broker_init_all(const struct object_broker_init *init,
+			   unsigned int num_clients,
+			   const struct object_broker_client_init *client);
+void object_broker_shutdown_all(void);
+
+void object_broker_publish(void *obj, int route_priority);
 
 #endif /* __ROUTE_BROKER_H__ */
