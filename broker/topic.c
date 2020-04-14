@@ -137,13 +137,25 @@ static int mplsroute_topic(const struct nlmsghdr *nlh, char *buf, size_t len,
 }
 #endif /* RTNLGRP_MPLS_ROUTE */
 
-int route_topic(const struct nlmsghdr *nlh, char *buf, size_t len)
+int route_topic(void *obj, char *buf, size_t len, bool *del)
 {
+	const struct nlmsghdr *nlh = obj;
 	const struct rtmsg *rtm = mnl_nlmsg_get_payload(nlh);
 	struct nlattr *tb[RTA_MAX + 1] = { NULL };
 	const void *dest;
 	char b1[INET6_ADDRSTRLEN];
 	uint32_t tableid;
+
+	switch (nlh->nlmsg_type) {
+	case RTM_NEWROUTE:
+		*del = false;
+		break;
+	case RTM_DELROUTE:
+		*del = true;
+		break;
+	default:
+		return -1;
+	}
 
 #ifdef RTNLGRP_MPLS_ROUTE
 	if (rtm->rtm_family == AF_MPLS)

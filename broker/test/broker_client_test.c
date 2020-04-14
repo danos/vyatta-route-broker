@@ -53,6 +53,7 @@ int main(int argc, char **argv)
 
 	rc = route_broker_init();
 	assert(rc == 0);
+	route_broker_topic_gen = route_topic;
 	route_broker_copy_obj = rib_nl_copy;
 	route_broker_free_obj = rib_nl_free;
 

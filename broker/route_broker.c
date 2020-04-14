@@ -24,6 +24,7 @@
 void *route_broker_log_arg;
 route_broker_fmt_cb route_broker_log_debug;
 route_broker_fmt_cb route_broker_log_error;
+object_broker_topic_gen_cb route_broker_topic_gen;
 object_broker_copy_obj_cb route_broker_copy_obj;
 object_broker_free_obj_cb route_broker_free_obj;
 
@@ -389,17 +390,6 @@ void route_broker_publish(const struct nlmsghdr *nlmsg, enum route_priority pri)
 	struct nlmsghdr *data_copy;
 	bool del = false;
 
-	switch (nlmsg->nlmsg_type) {
-	case RTM_NEWROUTE:
-		del = false;
-		break;
-	case RTM_DELROUTE:
-		del = true;
-		break;
-	default:
-		return;
-	}
-
 	processed_msg++;
 	route = rib_route_create();
 	if (!route) {
@@ -416,7 +406,8 @@ void route_broker_publish(const struct nlmsghdr *nlmsg, enum route_priority pri)
 
 	route->data = data_copy;
 	route->pri = pri;
-	rc = route_topic(route->data, route->topic, ROUTE_TOPIC_LEN);
+	rc = route_broker_topic_gen(route->data, route->topic,
+				    ROUTE_TOPIC_LEN, &del);
 	if (rc <= 0) {
 		/* Some routes such as local broadcast are ignored */
 		ignored_msg++;
@@ -551,6 +542,7 @@ int route_broker_init_all(const struct route_broker_init *init)
 		route_broker_log_error = init->log_error;
 		route_broker_log_arg = init->log_arg;
 	}
+	route_broker_topic_gen = route_topic;
 	route_broker_copy_obj = rib_nl_copy;
 	route_broker_free_obj = rib_nl_free;
 

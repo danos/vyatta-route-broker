@@ -9,6 +9,7 @@
 #ifndef __ROUTE_BROKER_H__
 #define __ROUTE_BROKER_H__
 
+#include <stdbool.h>
 #include <linux/netlink.h>
 
 enum route_priority {
@@ -41,6 +42,14 @@ struct route_broker_init {
 	/* Argument to provide with log callbacks */
 	void *log_arg;
 };
+
+/*
+ * Generate topic string for the given object.
+ *
+ * delete should be set to true if this is a delete of an object
+ */
+typedef int (*object_broker_topic_gen_cb) (void *obj, char *buf, size_t len,
+					bool *delete);
 
 typedef void *(*object_broker_copy_obj_cb) (const void *obj);
 

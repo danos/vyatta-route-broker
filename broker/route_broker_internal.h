@@ -60,6 +60,7 @@ struct route_broker_client {
 extern void *route_broker_log_arg;
 extern route_broker_fmt_cb route_broker_log_debug;
 extern route_broker_fmt_cb route_broker_log_error;
+extern object_broker_topic_gen_cb route_broker_topic_gen;
 extern object_broker_copy_obj_cb route_broker_copy_obj;
 extern object_broker_free_obj_cb route_broker_free_obj;
 
@@ -88,7 +89,8 @@ void route_broker_kernel_shutdown(void);
 void *route_broker_seq_first(int *pri);
 void *route_broker_seq_next(void *obj, int *pri);
 void *broker_obj_to_rib_route(struct broker_obj *obj);
-int route_topic(const struct nlmsghdr *nlh, char *buf, size_t len);
+
+int route_topic(void *obj, char *buf, size_t len, bool *delete);
 void *rib_nl_copy(const void *obj);
 void rib_nl_free(void *obj);
 
