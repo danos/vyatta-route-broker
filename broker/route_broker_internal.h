@@ -78,9 +78,10 @@ void route_broker_client_free_data(struct route_broker_client *rclient,
 int route_broker_init(void);
 int route_broker_destroy(void);
 /* Initialise the broker clients */
-int route_broker_dataplane_ctrl_init(const char *cfgfile);
+int route_broker_dataplane_ctrl_init(const char *cfgfile,
+				     object_broker_client_publish_cb publish);
 void route_broker_dataplane_ctrl_shutdown(void);
-int route_broker_kernel_init(route_broker_kernel_publish_cb publish);
+int route_broker_kernel_init(object_broker_client_publish_cb publish);
 void route_broker_kernel_shutdown(void);
 
 /*
@@ -93,5 +94,6 @@ void *broker_obj_to_rib_route(struct broker_obj *obj);
 int route_topic(void *obj, char *buf, size_t len, bool *delete);
 void *rib_nl_copy(const void *obj);
 void rib_nl_free(void *obj);
+int rib_nl_dp_publish_route(void *obj, void *client_ctx);
 
 #endif /* __ROUTE_BROKER_INTERNAL_H__ */

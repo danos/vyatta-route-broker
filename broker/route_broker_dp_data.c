@@ -62,23 +62,6 @@ static char *broker_dp_data_init(zsock_t **data_sock, const char *sock_ep)
 	return actual_ep;
 }
 
-static int
-rib_dp_publish_route(const struct nlmsghdr *nlmsg, zsock_t *dp_data_sock)
-{
-	zframe_t *frame;
-	int rc;
-
-	frame = zframe_new(nlmsg, nlmsg->nlmsg_len);
-	if (!frame)
-		return -1;
-
-	rc = zframe_send(&frame, dp_data_sock, ZFRAME_DONTWAIT);
-	if (rc < 0)
-		zframe_destroy(&frame);
-
-	return rc;
-}
-
 /* Client needs restarting if we have received the $TERM command on the pipe */
 static bool client_needs_restart(zsock_t *pipe)
 {
@@ -98,11 +81,15 @@ static bool client_needs_restart(zsock_t *pipe)
 
 void broker_dp_data_client(zsock_t *pipe, void *arg)
 {
-	struct nlmsghdr *nl;
+	void *obj;
 	struct route_broker_client *client;
 	char *ep;
 	static zsock_t *dp_data_sock;
-	const char *sock_ep = arg;
+	struct dp_data_client_args *args = arg;
+	const char *sock_ep = args->sock_ep;
+	object_broker_client_publish_cb client_publish = args->client_publish;
+
+	free(args);
 
 	if (pthread_setname_np(pthread_self(), "ribbroker/dp"))
 		broker_log_err("Could not name rib broker dp data thread");
@@ -123,19 +110,19 @@ void broker_dp_data_client(zsock_t *pipe, void *arg)
 	free(ep);
 
 	while (true) {
-		while ((nl = route_broker_client_get_data(client))) {
+		while ((obj = route_broker_client_get_data(client))) {
  try_sending:
-			if (rib_dp_publish_route(nl, dp_data_sock)) {
+			if (client_publish(obj, dp_data_sock)) {
 				if (client_needs_restart(pipe)) {
 					route_broker_client_free_data(
-						client, nl);
+						client, obj);
 					goto stop_client;
 				}
 
 				usleep(10000);
 				goto try_sending;
 			}
-			route_broker_client_free_data(client, nl);
+			route_broker_client_free_data(client, obj);
 
 			if (client_needs_restart(pipe))
 				goto stop_client;

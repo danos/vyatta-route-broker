@@ -17,7 +17,7 @@
 #include "netlink_create.h"
 #include "cli.h"
 
-int route_broker_kernel_init(route_broker_kernel_publish_cb publish)
+int route_broker_kernel_init(object_broker_client_publish_cb publish)
 {
 	return 0;
 }
@@ -62,7 +62,8 @@ int main(int argc, char **argv)
 	 * socket and then wait for the dp.
 	 */
 	printf("Initialising broker\n ");
-	rc = route_broker_dataplane_ctrl_init("test_cfgfile");
+	rc = route_broker_dataplane_ctrl_init("test_cfgfile",
+					      rib_nl_dp_publish_route);
 	assert(rc == 0);
 
 	/* Now create the dp side of it. */

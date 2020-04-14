@@ -494,7 +494,8 @@ static void delete_consumer(void)
 	assert(rc == 0);
 }
 
-int route_broker_dataplane_ctrl_init(const char *cfgfile)
+int route_broker_dataplane_ctrl_init(const char *cfgfile,
+				     object_broker_client_publish_cb publish)
 {
 	return 0;
 }
@@ -507,7 +508,7 @@ void route_broker_kernel_shutdown(void)
 {
 }
 
-int route_broker_kernel_init(route_broker_kernel_publish_cb publish)
+int route_broker_kernel_init(object_broker_client_publish_cb publish)
 {
 	return 0;
 }

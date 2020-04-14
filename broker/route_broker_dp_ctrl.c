@@ -34,6 +34,8 @@ static struct rib_broker_cfg rib_broker_cfg;
 
 static zactor_t *broker_dp_ctrl_thread;
 
+static object_broker_client_publish_cb broker_dp_client_publish;
+
 /*
  * Hash table of connected vplanes, keyed using the uuid.
  */
@@ -319,8 +321,17 @@ static void close_all_dp_sessions(void)
  */
 static char *start_new_dp_data_thread(struct dp *dp)
 {
-	dp->ipc = (zsock_t *) zactor_new(broker_dp_data_client,
-					 rib_broker_cfg.rib_dp_data_url);
+	struct dp_data_client_args *args = calloc(1, sizeof(*args));
+
+	if (!args) {
+		broker_log_err("Could not allocate memory for dp data args");
+		return NULL;
+	}
+
+	args->sock_ep = rib_broker_cfg.rib_dp_data_url;
+	args->client_publish = broker_dp_client_publish;
+
+	dp->ipc = (zsock_t *) zactor_new(broker_dp_data_client, args);
 	if (dp->ipc == NULL)
 		broker_log_err("Could not create new zactor for dp data");
 
@@ -457,8 +468,11 @@ static void broker_dp_ctrl(zsock_t *pipe, void *arg)
 	zsock_destroy(&broker_dp_ctrl_sock);
 }
 
-int route_broker_dataplane_ctrl_init(const char *cfgfile)
+int route_broker_dataplane_ctrl_init(const char *cfgfile,
+				     object_broker_client_publish_cb publish)
 {
+	broker_dp_client_publish = publish;
+
 	broker_dp_ctrl_thread = zactor_new(broker_dp_ctrl, (char *)cfgfile);
 	if (broker_dp_ctrl_thread)
 		return 0;

@@ -18,31 +18,31 @@
 
 static pthread_t broker_consumer_thread;
 
-static route_broker_kernel_publish_cb rib_kernel_publish_route;
+static object_broker_client_publish_cb obj_kernel_publish;
 
 static void *broker_consumer(void *arg)
 {
-	struct nlmsghdr *nl;
 	struct route_broker_client *client;
+	void *obj;
 
 	client = route_broker_client_create("kernel");
 
 	while (true) {
-		while ((nl = route_broker_client_get_data(client))) {
-			if (rib_kernel_publish_route(nl))
+		while ((obj = route_broker_client_get_data(client))) {
+			if (obj_kernel_publish(obj, NULL))
 				client->errors++;
-			route_broker_client_free_data(client, nl);
+			route_broker_client_free_data(client, obj);
 		}
 	}
 
 	pthread_exit(0);
 }
 
-int route_broker_kernel_init(route_broker_kernel_publish_cb publish)
+int route_broker_kernel_init(object_broker_client_publish_cb publish)
 {
 	int rc;
 
-	rib_kernel_publish_route = publish;
+	obj_kernel_publish = publish;
 	rc = pthread_create(&broker_consumer_thread, NULL,
 			    broker_consumer, NULL);
 	return rc;

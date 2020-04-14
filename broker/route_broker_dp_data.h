@@ -10,6 +10,11 @@
 #include <czmq.h>
 #include <zmq.h>
 
+struct dp_data_client_args {
+	const char *sock_ep;
+	object_broker_client_publish_cb client_publish;
+};
+
 /*
  * Create a new dataplane client for the broker.
  */

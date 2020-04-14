@@ -511,6 +511,32 @@ void route_broker_publish(const struct nlmsghdr *nlmsg, enum route_priority pri)
 	route_broker_unlock();
 }
 
+static route_broker_kernel_publish_cb rib_nl_kernel_publish;
+
+static int rib_nl_kernel_publish_wrapper(void *obj, void *client_ctx)
+{
+	return rib_nl_kernel_publish(obj);
+}
+
+int
+rib_nl_dp_publish_route(void *obj, void *client_ctx)
+{
+	const struct nlmsghdr *nlmsg = obj;
+	zsock_t *dp_data_sock = client_ctx;
+	zframe_t *frame;
+	int rc;
+
+	frame = zframe_new(nlmsg, nlmsg->nlmsg_len);
+	if (!frame)
+		return -1;
+
+	rc = zframe_send(&frame, dp_data_sock, ZFRAME_DONTWAIT);
+	if (rc < 0)
+		zframe_destroy(&frame);
+
+	return rc;
+}
+
 void *rib_nl_copy(const void *obj)
 {
 	const struct nlmsghdr *nl = obj;
@@ -549,9 +575,12 @@ int route_broker_init_all(const struct route_broker_init *init)
 	rc = route_broker_init();
 	assert(rc == 0);
 
-	rc = route_broker_dataplane_ctrl_init(cfgfile);
-	if (init && init->kernel_publish)
-		rc |= route_broker_kernel_init(init->kernel_publish);
+	rc = route_broker_dataplane_ctrl_init(cfgfile,
+					      rib_nl_dp_publish_route);
+	if (init && init->kernel_publish) {
+		rib_nl_kernel_publish = init->kernel_publish;
+		rc |= route_broker_kernel_init(rib_nl_kernel_publish_wrapper);
+	}
 	return rc;
 }
 
