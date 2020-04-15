@@ -495,7 +495,8 @@ static void delete_consumer(void)
 }
 
 int route_broker_dataplane_ctrl_init(const char *cfgfile,
-				     object_broker_client_publish_cb publish)
+				     object_broker_client_publish_cb publish,
+				     uint32_t data_format)
 {
 	return 0;
 }

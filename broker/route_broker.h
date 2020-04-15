@@ -89,8 +89,14 @@ struct object_broker_client_init {
 
 	object_broker_client_publish_cb client_publish;
 
-	/* path to config file - required for OB_CLIENT_ZSOCK */
+	/* path to config file - required for OB_CLIENT_DP_ZSOCK */
 	const char *cfg_file;
+
+	/*
+	 * the data format that the client can expect, opaque to the
+	 * broker - required for OB_CLIENT_DP_ZSOCK.
+	 */
+	uint32_t client_data_format;
 };
 
 /*

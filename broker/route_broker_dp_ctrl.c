@@ -30,6 +30,11 @@ struct rib_broker_cfg {
 	char *rib_dp_data_url;		/* url of rib broker server */
 };
 
+struct dp_ctrl_client_args {
+	const char *cfgfile;
+	uint32_t data_format;
+};
+
 static struct rib_broker_cfg rib_broker_cfg;
 
 static zactor_t *broker_dp_ctrl_thread;
@@ -115,6 +120,23 @@ static int process_actor_message(zloop_t *loop, zsock_t *sock, void *arg)
 	free(str);
 	zmsg_destroy(&msg);
 	return restart;
+}
+
+static int zmsg_addu32(zmsg_t *msg, uint32_t u)
+{
+	zframe_t *frame;
+
+	if (!msg) {
+		broker_log_err("addu32: Passed invalid pointer 'msg'\n");
+		return -1;
+	}
+
+	frame = zframe_new(&u, sizeof(uint32_t));
+	if (!frame) {
+		broker_log_err("addu32: Failed to create ZMSG frame\n");
+		return -1;
+	}
+	return zmsg_append(msg, &frame);
 }
 
 static int zmsg_popu32(zmsg_t *msg, uint32_t *p)
@@ -227,9 +249,10 @@ static zmsg_t *broker_dp_ctrl_msg_prepare(const char *reply, const char *uuid,
  * ACCEPT
  * <UUID>
  * <data url>
+ * <data format>
  */
 static int broker_dp_ctrl_msg_accept(struct dp *dp, zsock_t *sock,
-				     const char *url)
+				     const char *url, uint32_t data_format)
 {
 	zmsg_t *reply_msg;
 	int rc;
@@ -245,6 +268,14 @@ static int broker_dp_ctrl_msg_accept(struct dp *dp, zsock_t *sock,
 		zmsg_destroy(&reply_msg);
 		return -1;
 	}
+
+	rc = zmsg_addu32(reply_msg, data_format);
+	if (rc < 0) {
+		broker_log_err("Could not add data format to broker control reply msg");
+		zmsg_destroy(&reply_msg);
+		return -1;
+	}
+
 	broker_log_debug("New broker dataplane reply %s, %s\n", dp->uuid, url);
 
 	return zmsg_send(&reply_msg, sock);
@@ -340,7 +371,7 @@ static char *start_new_dp_data_thread(struct dp *dp)
 }
 
 static int process_connect_message(zsock_t *sock, zframe_t *envelope,
-				   char *uuid)
+				   char *uuid, uint32_t data_format)
 {
 	struct dp *dp;
 
@@ -365,7 +396,7 @@ static int process_connect_message(zsock_t *sock, zframe_t *envelope,
 	dp->data_url = start_new_dp_data_thread(dp);
 
 	/* And send the ACCEPT back to the DP */
-	broker_dp_ctrl_msg_accept(dp, sock, dp->data_url);
+	broker_dp_ctrl_msg_accept(dp, sock, dp->data_url, data_format);
 	return 0;
 }
 
@@ -386,6 +417,7 @@ process_keepalive_message(zsock_t *sock, zframe_t *envelope, const char *uuid)
 
 static int process_ctrl_message(zloop_t *loop, zsock_t *sock, void *arg)
 {
+	struct dp_ctrl_client_args *args = arg;
 	enum rib_broker_dp_request req;
 	char *uuid;
 	zframe_t *envelope;
@@ -403,7 +435,8 @@ static int process_ctrl_message(zloop_t *loop, zsock_t *sock, void *arg)
 	zmsg_destroy(&msg);
 	switch (req) {
 	case RIB_BROKER_DP_REQ_CONNECT:
-		return process_connect_message(sock, envelope, uuid);
+		return process_connect_message(sock, envelope, uuid,
+					       args->data_format);
 	case RIB_BROKER_DP_REQ_KEEPALIVE:
 		return process_keepalive_message(sock, envelope, uuid);
 	default:
@@ -419,7 +452,8 @@ static int process_ctrl_message(zloop_t *loop, zsock_t *sock, void *arg)
  */
 static void broker_dp_ctrl(zsock_t *pipe, void *arg)
 {
-	const char *cfgfile = arg;
+	struct dp_ctrl_client_args *args = arg;
+	const char *cfgfile = args->cfgfile;
 	zloop_t *zloop;
 	zsock_t *broker_dp_ctrl_sock;
 	const char *sock_path = NULL;
@@ -459,24 +493,36 @@ static void broker_dp_ctrl(zsock_t *pipe, void *arg)
 	zloop = zloop_new();
 	zloop_reader(zloop, pipe, process_actor_message, pipe);
 	zloop_reader(zloop, broker_dp_ctrl_sock, process_ctrl_message,
-		     broker_dp_ctrl_sock);
+		     args);
 
 	zloop_start(zloop);
 
 	close_all_dp_sessions();
 	zloop_destroy(&zloop);
 	zsock_destroy(&broker_dp_ctrl_sock);
+	free(args);
 }
 
 int route_broker_dataplane_ctrl_init(const char *cfgfile,
-				     object_broker_client_publish_cb publish)
+				     object_broker_client_publish_cb publish,
+				     uint32_t data_format)
 {
+	struct dp_ctrl_client_args *args;
+
+	args = calloc(1, sizeof(*args));
+	if (!args)
+		return -1;
+
+	args->cfgfile = cfgfile;
+	args->data_format = data_format;
+
 	broker_dp_client_publish = publish;
 
-	broker_dp_ctrl_thread = zactor_new(broker_dp_ctrl, (char *)cfgfile);
+	broker_dp_ctrl_thread = zactor_new(broker_dp_ctrl, args);
 	if (broker_dp_ctrl_thread)
 		return 0;
 
+	free(args);
 	return -1;
 }
 

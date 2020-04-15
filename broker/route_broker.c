@@ -545,7 +545,8 @@ int object_broker_init_all(const struct object_broker_init *init,
 	assert(rc == 0);
 
 	rc = route_broker_dataplane_ctrl_init(client[0].cfg_file,
-					      client[0].client_publish);
+					      client[0].client_publish,
+					      client[0].client_data_format);
 	if (num_clients == 2)
 		rc |= route_broker_kernel_init(client[1].client_publish);
 	return rc;

@@ -63,7 +63,7 @@ int main(int argc, char **argv)
 	 */
 	printf("Initialising broker\n ");
 	rc = route_broker_dataplane_ctrl_init("test_cfgfile",
-					      rib_nl_dp_publish_route);
+					      rib_nl_dp_publish_route, 0);
 	assert(rc == 0);
 
 	/* Now create the dp side of it. */

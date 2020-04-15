@@ -79,7 +79,8 @@ int route_broker_init(void);
 int route_broker_destroy(void);
 /* Initialise the broker clients */
 int route_broker_dataplane_ctrl_init(const char *cfgfile,
-				     object_broker_client_publish_cb publish);
+				     object_broker_client_publish_cb publish,
+				     uint32_t data_format);
 void route_broker_dataplane_ctrl_shutdown(void);
 int route_broker_kernel_init(object_broker_client_publish_cb publish);
 void route_broker_kernel_shutdown(void);
