@@ -1,3 +1,14 @@
+vyatta-route-broker (1.0) unstable; urgency=medium
+
+  [ Robert Shearman ]
+  * broker: abstract out copying and freeing route data
+  * broker: abstract out topic string generation
+  * broker: abstract out publishing of client data
+  * broker: provide an object-broker API that doesn't depend on netlink
+  * broker: advertise protobuf message format to dataplane
+
+ -- Duncan Eastoe <duncan.eastoe@att.com>  Wed, 13 May 2020 18:33:50 +0100
+
 vyatta-route-broker (0.5) unstable; urgency=medium
 
   * DANOS Import master
