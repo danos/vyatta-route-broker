@@ -4,6 +4,7 @@ After=vyatta-routing-frr-early.target
 
 [Service]
 Type=simple
+Restart=always
 TimeoutStopSec=10
 Environment="TMPDIR=/var/run/routing"
 ExecStart=/usr/sbin/brokerd -u routing -g adm
