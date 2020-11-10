@@ -5,7 +5,7 @@ Copyright: 2018-2020, AT&T Intellectual Property.  All rights reserved.
 License: MPL-2.0
 
 Files: daemon/*
-Copyright: 2018, AT&T Intellectual Property.  All rights reserved.
+Copyright: 2018, 2020, AT&T Intellectual Property.  All rights reserved.
 License: GPL-2
 
 Files: daemon/fpm.h

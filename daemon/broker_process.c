@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, AT&T Intellectual Property. All rights reserved.
+ * Copyright (c) 2018, 2020 AT&T Intellectual Property. All rights reserved.
  *
  * SPDX-License-Identifier: GPL-2.0-only
  */
@@ -280,7 +280,9 @@ broker_process_fpm(int fd)
 
 	process_nlmsg(fpm_msg_data(fpm), fpm_msg_data_len(fpm));
 
-	route_broker_show(broker_log_debug, NULL);
+	if (broker_debug)
+		route_broker_show(broker_log_debug, NULL);
+
 	return n;
 }
 
@@ -302,7 +304,9 @@ broker_process_nl(int fd)
 
 	process_nlmsg(buf, n);
 
-	route_broker_show(broker_log_debug, NULL);
+	if (broker_debug)
+		route_broker_show(broker_log_debug, NULL);
+
 	return n;
 }
 
