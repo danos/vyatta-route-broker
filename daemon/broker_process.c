@@ -202,6 +202,18 @@ process_rtnl(const struct nlmsghdr *nlh)
 	if (rtm->rtm_table == RT_TABLE_UNSPEC)
 		rtm->rtm_table = RT_TABLE_MAIN;
 
+	/*
+	 * The DANOS dataplane will discard RTN_UNSPEC messages which is an
+	 * issue since RTM_DELROUTE messages from FRR always use RTN_UNSPEC.
+	 * For deletes the dataplane only differs its behaviour for (IPv6)
+	 * RTN_LOCAL, which we receive from the kernel, not FRR.
+	 * So setting RTN_UNICAST on these messages is sufficient to have
+	 * the dataplane correctly process route deletes from FRR.
+	 */
+	if (nlh->nlmsg_type == RTM_DELROUTE &&
+			nlh->nlmsg_pid != 0 && rtm->rtm_type == RTN_UNSPEC)
+		rtm->rtm_type = RTN_UNICAST;
+
 	route_broker_publish(nlh, route_priority);
 }
 
