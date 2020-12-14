@@ -154,9 +154,10 @@ dump_rtmsg(const struct nlmsghdr *nlh)
 	rtm = NLMSG_DATA(nlh);
 	rlen = nlh->nlmsg_len - NLMSG_LENGTH(sizeof(*rtm));
 	fprintf(stderr,
-		"[%s(%u), len %u]: af %s(%u) type %s(%u), table %s(%u), "
+		"[%s(%u), pid %u, len %u]: af %s(%u) type %s(%u), table %s(%u), "
 		"proto %s(%u), scope %s(%u)\n",
-		nlmsg_type2str(nlh->nlmsg_type), nlh->nlmsg_type, rlen,
+		nlmsg_type2str(nlh->nlmsg_type), nlh->nlmsg_type,
+		nlh->nlmsg_pid, rlen,
 		rtm_af2str(rtm->rtm_family), rtm->rtm_family,
 		rtm_type2str(rtm->rtm_type), rtm->rtm_type,
 		rtm_table2str(rtm->rtm_table), rtm->rtm_table,
