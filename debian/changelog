@@ -1,3 +1,10 @@
+vyatta-route-broker (1.0.3) unstable; urgency=medium
+
+  * daemon: swap RTN_UNSPEC for RTN_UNICAST on rt delete
+  * daemon: include nlmsg_pid in rtmsg debug output
+
+ -- Duncan Eastoe <duncan.eastoe@att.com>  Wed, 16 Dec 2020 11:41:47 +0000
+
 vyatta-route-broker (1.0.2) unstable; urgency=medium
 
   * daemon: call route_broker_show() iff debug is on
