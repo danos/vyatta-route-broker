@@ -23,14 +23,32 @@ static object_broker_client_publish_cb obj_kernel_publish;
 static void *broker_consumer(void *arg)
 {
 	struct route_broker_client *client;
+	struct broker_client *bc;
 	void *obj;
 
 	client = route_broker_client_create("kernel");
 
 	while (true) {
-		while ((obj = route_broker_client_get_data(client))) {
-			if (obj_kernel_publish(obj, NULL))
+		while ((obj = route_broker_client_get_data(client, &bc))) {
+			if (obj_kernel_publish(obj, NULL)) {
 				client->errors++;
+				broker_log_err("publish %s: "
+					       "consumed %" PRIu64
+					       " behind %" PRIu64
+					       " errno (%d) %s\n",
+					       bc->name, bc->consumed,
+					       bc->broker->id -
+					       bc->broker_obj.id,
+					       errno, strerror(errno));
+			} else if (broker_is_log_detail()) {
+				broker_log_debug("publish %s: "
+						 "consumed %" PRIu64
+						 " behind %" PRIu64 "\n",
+						 bc->name, bc->consumed,
+						 bc->broker->id -
+						 bc->broker_obj.id);
+			}
+
 			route_broker_client_free_data(client, obj);
 		}
 	}

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2019, AT&T Intellectual Property.  All rights reserved.
+ * Copyright (c) 2018-2019,2021 AT&T Intellectual Property.  All rights reserved.
  *
  * SPDX-License-Identifier: MPL-2.0
  */
@@ -83,6 +83,7 @@ void broker_dp_data_client(zsock_t *pipe, void *arg)
 {
 	void *obj;
 	struct route_broker_client *client;
+	struct broker_client *bc;
 	char *ep;
 	static zsock_t *dp_data_sock;
 	struct dp_data_client_args *args = arg;
@@ -110,9 +111,22 @@ void broker_dp_data_client(zsock_t *pipe, void *arg)
 	free(ep);
 
 	while (true) {
-		while ((obj = route_broker_client_get_data(client))) {
+		while ((obj = route_broker_client_get_data(client, &bc))) {
  try_sending:
+			errno = 0;
 			if (client_publish(obj, dp_data_sock)) {
+				if (errno != EAGAIN) {
+					client->errors++;
+					broker_log_err("publish error %s: "
+						       "consumed %" PRIu64
+						       " behind %" PRIu64
+						       " errno (%d) %s\n",
+						       bc->name,
+						       bc->consumed,
+						       bc->broker->id -
+						       bc->broker_obj.id,
+						       errno, strerror(errno));
+				}
 				if (client_needs_restart(pipe)) {
 					route_broker_client_free_data(
 						client, obj);
@@ -122,6 +136,13 @@ void broker_dp_data_client(zsock_t *pipe, void *arg)
 				usleep(10000);
 				goto try_sending;
 			}
+
+			broker_log_dp_detail(obj, bc->name,
+					     "publish %s: consumed %" PRIu64
+					     " behind %" PRIu64 "\n",
+					     bc->name, bc->consumed,
+					     bc->broker->id - bc->broker_obj.id);
+
 			route_broker_client_free_data(client, obj);
 
 			if (client_needs_restart(pipe))

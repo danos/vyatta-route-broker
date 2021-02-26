@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2018, AT&T Intellectual Property. All rights reserved.
+ * Copyright (c) 2018,2021 AT&T Intellectual Property. All rights reserved.
  * Copyright (c) 2016 by Brocade Communications Systems, Inc.
  * All rights reserved.
  *
@@ -23,6 +23,8 @@ enum route_priority {
  * Callback for formatted show/log output
  */
 typedef void (*route_broker_fmt_cb) (void *arg, const char *fmt, ...);
+typedef void (*route_broker_log_cb) (void *nl, const char *client_name,
+				     void *arg, const char *fmt, ...);
 
 /*
  * Callback for kernel publish
@@ -38,6 +40,12 @@ struct route_broker_init {
 
 	/* Error logging */
 	route_broker_fmt_cb log_error;
+
+	/* Detailed log */
+	route_broker_log_cb log_dp_detail;
+
+	/* Detailed log is enabled */
+	bool *is_log_detail;
 
 	/* Argument to provide with log callbacks */
 	void *log_arg;
@@ -72,6 +80,12 @@ struct object_broker_init {
 
 	/* Error logging */
 	route_broker_fmt_cb log_error;
+
+	/* Detailed log */
+	route_broker_log_cb log_dp_detail;
+
+	/* Detailed log is enabled */
+	bool *is_log_detail;
 
 	/* Argument to provide with log callbacks */
 	void *log_arg;

@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2018, AT&T Intellectual Property. All rights reserved.
+ * Copyright (c) 2018,2021 AT&T Intellectual Property. All rights reserved.
  * Copyright (c) 2016 by Brocade Communications Systems, Inc.
  * All rights reserved.
  *
@@ -37,6 +37,17 @@
 		fprintf(stderr, fmt, ##__VA_ARGS__); \
 	} while (0)
 
+#define broker_is_log_detail()	\
+	(route_broker_is_log_detail && *route_broker_is_log_detail)
+
+#define broker_log_dp_detail(obj, client_name, fmt, ...) \
+	do { \
+		if (route_broker_log_dp_detail && broker_is_log_detail()) \
+			route_broker_log_dp_detail(obj, client_name, \
+						   route_broker_log_arg, fmt, \
+						   ##__VA_ARGS__); \
+	} while (0)
+
 struct rib_route {
 	struct broker_obj b_obj;
 	uint32_t refcount;
@@ -58,8 +69,10 @@ struct route_broker_client {
 };
 
 extern void *route_broker_log_arg;
+extern bool *route_broker_is_log_detail;
 extern route_broker_fmt_cb route_broker_log_debug;
 extern route_broker_fmt_cb route_broker_log_error;
+extern route_broker_log_cb route_broker_log_dp_detail;
 extern object_broker_topic_gen_cb route_broker_topic_gen;
 extern object_broker_copy_obj_cb route_broker_copy_obj;
 extern object_broker_free_obj_cb route_broker_free_obj;
@@ -70,7 +83,8 @@ extern object_broker_free_obj_cb route_broker_free_obj;
  */
 struct route_broker_client *route_broker_client_create(const char *name);
 void route_broker_client_delete(struct route_broker_client *client);
-void *route_broker_client_get_data(struct route_broker_client *client);
+void *route_broker_client_get_data(struct route_broker_client *client,
+		struct broker_client **bc);
 void route_broker_client_free_data(struct route_broker_client *rclient,
 				   void *obj);
 

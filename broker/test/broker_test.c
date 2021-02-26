@@ -451,13 +451,14 @@ static void consume1(void)
 static void *test_consumer(void *arg)
 {
 	struct nlmsghdr *nl;
+	struct broker_client *bc;
 
 	client = route_broker_client_create("test");
 	client_count++;
 
 	while (true) {
 		while ((available > 0)
-		       && (nl = route_broker_client_get_data(client))) {
+		       && (nl = route_broker_client_get_data(client, &bc))) {
 			char buf[ROUTE_TOPIC_LEN];
 			bool delete = false;
 

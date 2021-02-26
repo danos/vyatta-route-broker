@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2018, AT&T Intellectual Property. All rights reserved.
+ * Copyright (c) 2018,2021 AT&T Intellectual Property. All rights reserved.
  * Copyright (c) 2016 by Brocade Communications Systems, Inc.
  * All rights reserved.
  *
@@ -24,9 +24,11 @@
 void *route_broker_log_arg;
 route_broker_fmt_cb route_broker_log_debug;
 route_broker_fmt_cb route_broker_log_error;
+route_broker_log_cb route_broker_log_dp_detail;
 object_broker_topic_gen_cb route_broker_topic_gen;
 object_broker_copy_obj_cb route_broker_copy_obj;
 object_broker_free_obj_cb route_broker_free_obj;
+bool *route_broker_is_log_detail;
 
 static uint64_t processed_msg;
 static uint64_t ignored_msg;
@@ -279,7 +281,8 @@ static int data_available_for_client(struct route_broker_client *rclient)
  * sleep until data arrives, then start the check again from the highest
  * priority.
  */
-void *route_broker_client_get_data(struct route_broker_client *rclient)
+void *route_broker_client_get_data(struct route_broker_client *rclient,
+				   struct broker_client **bc)
 {
 	void *data;
 	int level;
@@ -304,6 +307,7 @@ void *route_broker_client_get_data(struct route_broker_client *rclient)
 	}
 
 	data = broker_client_get_data(rclient->client[level]);
+	*bc = rclient->client[level];
 	route_broker_unlock();
 
 	return data;
@@ -536,6 +540,8 @@ int object_broker_init_all(const struct object_broker_init *init,
 
 	route_broker_log_debug = init->log_debug;
 	route_broker_log_error = init->log_error;
+	route_broker_is_log_detail = init->is_log_detail;
+	route_broker_log_dp_detail = init->log_dp_detail;
 	route_broker_log_arg = init->log_arg;
 	route_broker_topic_gen = init->topic_gen;
 	route_broker_copy_obj = init->copy_obj;
