@@ -1,3 +1,9 @@
+vyatta-route-broker (1.0.4) unstable; urgency=medium
+
+  * route_broker: detail log
+
+ -- Dewi Morgan <dewi.morgan@intl.att.com>  Tue, 23 Mar 2021 08:27:04 +0000
+
 vyatta-route-broker (1.0.3) unstable; urgency=medium
 
   * daemon: swap RTN_UNSPEC for RTN_UNICAST on rt delete
